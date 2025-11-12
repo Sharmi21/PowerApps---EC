@@ -39,6 +39,9 @@ export default function FileUpload({
     } else if (!multiple && onFileSelect && selectedFiles[0]) {
       onFileSelect(selectedFiles[0]);
     }
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   const handleRemove = (e: React.MouseEvent) => {

@@ -31,6 +31,52 @@ function App() {
     }
   };
 
+  const handleJsonFilesSelect = async (selectedFiles: File[]) => {
+    try {
+      const allJsonFiles: File[] = [];
+
+      for (const file of selectedFiles) {
+        if (file.name.endsWith('.zip')) {
+          const extractedFiles = await extractZipFiles(file);
+          allJsonFiles.push(...extractedFiles);
+        } else if (file.name.endsWith('.json')) {
+          allJsonFiles.push(file);
+        }
+      }
+
+      if (allJsonFiles.length === 0) {
+        setError('No JSON files found in the selected files/archives');
+        return;
+      }
+
+      setJsonFiles(allJsonFiles);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error processing files');
+    }
+  };
+
+  const extractZipFiles = async (zipFile: File) => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    const loaded = await zip.loadAsync(zipFile);
+    const jsonFiles: File[] = [];
+
+    for (const [path, file] of Object.entries(loaded.files)) {
+      if (path.endsWith('.json') && !file.dir) {
+        const content = await file.async('blob');
+        const jsonFile = new File([content], path, { type: 'application/json' });
+        jsonFiles.push(jsonFile);
+      }
+    }
+
+    if (jsonFiles.length === 0) {
+      throw new Error('No JSON files found in the ZIP archive');
+    }
+
+    return jsonFiles;
+  };
+
   const handleReset = () => {
     setCsvFile(null);
     setJsonFiles([]);
@@ -78,12 +124,12 @@ function App() {
 
                 <FileUpload
                   title="Upload JSON Files"
-                  accept=".json"
+                  accept=".json,.zip"
                   icon={<Upload className="w-6 h-6" />}
                   files={jsonFiles}
-                  onFilesSelect={setJsonFiles}
+                  onFilesSelect={handleJsonFilesSelect}
                   multiple
-                  description="Upload multiple JSON files for comparison"
+                  description="Upload ZIP files or individual JSON files for comparison"
                 />
               </div>
 
